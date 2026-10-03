@@ -1,0 +1,256 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../lib/db/generated"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+}
+
+enum MarkSource {
+  FACULTY
+  APPROVED_FALLBACK
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VerificationDecision {
+  APPROVED
+  REJECTED
+}
+
+enum StudyMatchStatus {
+  REQUESTED
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
+enum AlertStatus {
+  OPEN
+  SENT
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model User {
+  id             String          @id @default(cuid())
+  username       String          @unique
+  name           String
+  passwordHash   String
+  role           UserRole
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  marksEntered   Mark[]          @relation("MarkEnteredBy")
+  verifications  MarkVerification[]
+  guidanceAlerts GuidanceAlert[] @relation("GuidanceAlertTeacher")
+
+  @@index([role])
+}
+
+model StudentProfile {
+  id             String          @id @default(cuid())
+  userId         String          @unique
+  registrationNo String          @unique
+  program        String          @default("B.Tech Computer Science")
+  semester       Int             @default(5)
+  activeSlotId   String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeSlot     ClassSlot       @relation("ActiveStudentSlot", fields: [activeSlotId], references: [id])
+  enrollments    Enrollment[]
+  marks          Mark[]
+  submissions    MarkSubmission[]
+  attendance     Attendance[]
+  requestedMatches StudyMatch[]  @relation("MatchRequester")
+  receivedMatches StudyMatch[]   @relation("MatchPeer")
+  guidanceAlerts GuidanceAlert[]
+
+  @@index([activeSlotId])
+}
+
+model TeacherProfile {
+  id       String      @id @default(cuid())
+  userId   String      @unique
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses  Course[]
+  slots    ClassSlot[]
+}
+
+model Course {
+  id          String          @id @default(cuid())
+  code        String          @unique
+  name        String
+  semester    Int             @default(5)
+  teacherId   String
+  teacher     TeacherProfile  @relation(fields: [teacherId], references: [id])
+  offerings   CourseSlot[]
+  assessments Assessment[]
+  enrollments Enrollment[]
+  attendance  Attendance[]
+  studyMatches StudyMatch[]
+  guidanceAlerts GuidanceAlert[]
+  createdAt   DateTime        @default(now())
+
+  @@index([teacherId])
+}
+
+model ClassSlot {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  teacherId   String
+  teacher     TeacherProfile  @relation(fields: [teacherId], references: [id])
+  activeStudents StudentProfile[] @relation("ActiveStudentSlot")
+  offerings   CourseSlot[]
+  enrollments Enrollment[]
+  createdAt   DateTime        @default(now())
+}
+
+model CourseSlot {
+  id        String    @id @default(cuid())
+  courseId  String
+  slotId    String
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  slot      ClassSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, slotId])
+  @@index([slotId])
+}
+
+model Enrollment {
+  id        String        @id @default(cuid())
+  studentId String
+  courseId  String
+  slotId    String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  slot      ClassSlot    @relation(fields: [slotId], references: [id])
+  enrolledAt DateTime    @default(now())
+
+  @@unique([studentId, courseId])
+  @@index([courseId, slotId])
+  @@index([slotId])
+}
+
+model Assessment {
+  id        String     @id @default(cuid())
+  courseId  String
+  name      String
+  maxScore  Float
+  weight    Float
+  dueDate   DateTime?
+  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  marks     Mark[]
+  submissions MarkSubmission[]
+
+  @@unique([courseId, name])
+  @@index([courseId])
+}
+
+model Mark {
+  id           String       @id @default(cuid())
+  studentId    String
+  assessmentId String
+  score        Float
+  source       MarkSource   @default(FACULTY)
+  enteredById  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  enteredBy    User?        @relation("MarkEnteredBy", fields: [enteredById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, assessmentId])
+  @@index([assessmentId])
+}
+
+model MarkSubmission {
+  id           String           @id @default(cuid())
+  studentId    String
+  assessmentId String
+  score        Float
+  peerScores   Float[]          @default([])
+  status       SubmissionStatus @default(PENDING)
+  isOutlier    Boolean          @default(false)
+  reason       String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  student      StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assessment   Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  verification MarkVerification?
+
+  @@index([status, createdAt])
+  @@index([studentId, assessmentId])
+}
+
+model MarkVerification {
+  id           String               @id @default(cuid())
+  submissionId String               @unique
+  reviewerId   String
+  decision     VerificationDecision
+  officialScore Float?
+  note         String?
+  decidedAt    DateTime             @default(now())
+  submission   MarkSubmission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer     User                 @relation(fields: [reviewerId], references: [id])
+
+  @@index([reviewerId, decidedAt])
+}
+
+model Attendance {
+  id        String         @id @default(cuid())
+  studentId String
+  courseId  String
+  date      DateTime      @db.Date
+  present   Boolean
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId, date])
+  @@index([courseId, date])
+}
+
+model StudyMatch {
+  id          String           @id @default(cuid())
+  requesterId String
+  peerId      String
+  courseId    String
+  status      StudyMatchStatus @default(REQUESTED)
+  message     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  requester   StudentProfile  @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  peer        StudentProfile  @relation("MatchPeer", fields: [peerId], references: [id], onDelete: Cascade)
+  course      Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, peerId, courseId])
+  @@index([peerId, status])
+}
+
+model GuidanceAlert {
+  id        String      @id @default(cuid())
+  studentId String
+  teacherId String
+  courseId  String?
+  message   String
+  status    AlertStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  sentAt    DateTime?
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher   User        @relation("GuidanceAlertTeacher", fields: [teacherId], references: [id])
+  course    Course?     @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, status])
+  @@index([teacherId, createdAt])
+}
