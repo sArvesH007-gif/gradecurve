@@ -80,3 +80,9 @@ The unit suite covers grading calculations and signed session behavior. The Play
 ## Relative grading language
 
 GradeCurve reports analytical trajectories and simulations. They are not official university grades; official outcomes remain determined by institutional policy.
+
+## Database-side retrieval experiment
+
+The experimental branch adds `GET /api/student/assessment-summary`, backed by the PostgreSQL `student_assessment_summary` PL/pgSQL function. The endpoint requires a student session and uses the signed-in user's ID on the server. It returns each enrolled course's class slot, assessments, maximum marks, weights, and any recorded marks.
+
+This experiment uses PostgreSQL PL/pgSQL. Oracle PL/SQL cannot run directly on PostgreSQL; Oracle support would require an Oracle-compatible database and a separate database integration.
