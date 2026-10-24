@@ -86,3 +86,11 @@ GradeCurve reports analytical trajectories and simulations. They are not officia
 The experimental branch adds `GET /api/student/assessment-summary`, backed by the PostgreSQL `student_assessment_summary` PL/pgSQL function. The endpoint requires a student session and uses the signed-in user's ID on the server. It returns each enrolled course's class slot, assessments, maximum marks, weights, and any recorded marks.
 
 This experiment uses PostgreSQL PL/pgSQL. Oracle PL/SQL cannot run directly on PostgreSQL; Oracle support would require an Oracle-compatible database and a separate database integration.
+
+## DA2 procedural database operations
+
+The migration `prisma/migrations/20261024000000_da2_procedural_queries/migration.sql` adds nine PostgreSQL PL/pgSQL operations alongside the existing `student_assessment_summary` function: academic summary, per-student/course marks, assessment statistics, validated mark upsert, validated attendance upsert, weighted course score, course-slot roster, attendance summary, and at-risk students. The risk function follows the application criteria (same course slot, cumulative weighted-score Z-score below -1.0 or attendance below 75%).
+
+The SQL matches the Prisma tables: `User`, `StudentProfile`, `TeacherProfile`, `Course`, `ClassSlot`, `CourseSlot`, `Enrollment`, `Assessment`, `Mark`, and `Attendance`. Assessment weights are stored as fractions (`0.15` for 15%); weighted points use `score / maxScore * weight * 100`. The procedures check teacher ownership, enrollment, score ranges, and required attendance values. The existing Next.js mark route continues to use its validated transactional Prisma implementation; the new teacher statistics route calls the course statistics function after checking course ownership.
+
+For SQL definitions and sample calls, see `prisma/da2_demo.sql`. Apply the migration with `npm run db:migrate`; the demo file uses a rollback around its procedure calls to preserve seeded data. The demo queries are provided for execution against a seeded PostgreSQL database; no database output is claimed as verified unless run locally.
