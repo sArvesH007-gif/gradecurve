@@ -16,7 +16,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:neo4j": "tsx scripts/seed-neo4j.ts",
+    "db:verify:neo4j": "tsx scripts/verify-neo4j.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
@@ -26,6 +28,7 @@
     "dotenv": "^17.0.0",
     "framer-motion": "^12.0.0",
     "lucide-react": "^0.468.0",
+    "neo4j-driver": "^6.2.0",
     "next": "^16.0.0",
     "pg": "^8.16.0",
     "react": "^19.2.0",
