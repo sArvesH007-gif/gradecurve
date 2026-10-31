@@ -1,0 +1,586 @@
+=== Twelve GradeCurve SQL query demonstrations ===
+old   5: WHERE sp.registration_no = '&&student_reg_no'
+new   5: WHERE sp.registration_no = '24BCE0001'
+
+REGISTRATION_NO
+------------------------
+FULL_NAME
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+PROGRAM 														   SEMESTER ACTIVE_SLOT
+------------------------------------------------------------------------------------------------------------------------ ---------- ----------------------------------------
+24BCE0001
+Demo Student 01
+B.Tech Computer Science 													  5 L31+L32
+
+
+old   9: WHERE sp.registration_no = '&&student_reg_no'
+new   9: WHERE sp.registration_no = '24BCE0001'
+
+CODE
+--------------------
+COURSE_NAME
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ENROLLED_SLOT
+----------------------------------------
+FACULTY_NAME
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ENROLLED_AT
+---------------------------------------------------------------------------
+CSE1004
+Network Essentials
+L31+L32
+Demo Faculty One
+31-OCT-26 05.53.54.635815 PM
+
+CSE1007
+Database Management Systems
+L31+L32
+Demo Faculty Two
+31-OCT-26 05.53.54.637810 PM
+
+
+old  10: WHERE sp.registration_no = '&&student_reg_no'
+new  10: WHERE sp.registration_no = '24BCE0001'
+
+CODE
+--------------------
+NAME																				 CLASSES_RECORDED
+---------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------
+CLASSES_ATTENDED ATTENDANCE_PERCENT
+---------------- ------------------
+CSE1004
+Network Essentials																			       12
+	      11	       91.7
+
+CSE1007
+Database Management Systems																		       12
+	      11	       91.7
+
+
+old   7: WHERE sp.registration_no = '&&student_reg_no'
+new   7: WHERE sp.registration_no = '24BCE0001'
+
+CODE		     ASSESSMENT 	       MAX_SCORE     WEIGHT  RAW_SCORE RAW_PERCENT
+-------------------- ------------------------ ---------- ---------- ---------- -----------
+CSE1004 	     CAT1			      50	.15	    14		28
+CSE1004 	     CAT2			      50	.15	  20.5		41
+CSE1004 	     DA1			      10	 .1	   5.4		54
+CSE1004 	     DA2			      10	 .1	   2.2		22
+CSE1004 	     DA3			      10	 .1	   3.5		35
+CSE1004 	     FAT			     100	 .4	    64		64
+CSE1007 	     CAT1			      50	.15	    20		40
+CSE1007 	     CAT2			      50	.15	  26.5		53
+CSE1007 	     DA1			      10	 .1	   2.1		21
+CSE1007 	     DA2			      10	 .1	   3.4		34
+CSE1007 	     DA3			      10	 .1	   4.7		47
+
+11 rows selected.
+
+old   8: WHERE c.code = '&&course_code'
+new   8: WHERE c.code = 'CSE1004'
+
+CODE	ASSESSMENT		 MARKED_STUDENTS MEAN_SCORE POPULATION_SD MINIMUM_SCORE MAXIMUM_SCORE
+------- ------------------------ --------------- ---------- ------------- ------------- -------------
+CSE1004 CAT1				      45       28.9	     7.62	     14 	   44
+CSE1004 CAT2				      45       28.9	     8.14	     13 	 48.5
+CSE1004 DA1				      45       5.78	     1.73	    2.4 	  9.7
+CSE1004 DA2				      45       5.78	     1.82	    2.2 	  9.7
+CSE1004 DA3				      45       5.78	     1.73	    2.2 	  9.5
+CSE1004 FAT				      41      58.44	    15.83	     22 	   93
+
+6 rows selected.
+
+old   9: WHERE sp.registration_no = '&&student_reg_no' AND c.code = '&&course_code'
+new   9: WHERE sp.registration_no = '24BCE0001' AND c.code = 'CSE1004'
+
+REGISTRATION_NO 	 CODE		      EARNED_WEIGHTED_POINTS GRADED_WEIGHT_PERCENT
+------------------------ -------------------- ---------------------- ---------------------
+24BCE0001		 CSE1004			       47.05		       100
+
+old   7: WHERE c.code = '&&course_code' AND sl.name = '&&slot_name'
+new   7: WHERE c.code = 'CSE1004' AND sl.name = 'L31+L32'
+
+CLASS_SLOT				 REGISTRATION_NO
+---------------------------------------- ------------------------
+FULL_NAME
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+L31+L32 				 24BCE0001
+Demo Student 01
+
+L31+L32 				 24BCE0002
+Demo Student 02
+
+L31+L32 				 24BCE0003
+Demo Student 03
+
+L31+L32 				 24BCE0004
+Demo Student 04
+
+L31+L32 				 24BCE0005
+Demo Student 05
+
+L31+L32 				 24BCE0006
+Demo Student 06
+
+L31+L32 				 24BCE0007
+Demo Student 07
+
+L31+L32 				 24BCE0008
+Demo Student 08
+
+L31+L32 				 24BCE0009
+Demo Student 09
+
+L31+L32 				 24BCE0010
+Demo Student 10
+
+L31+L32 				 24BCE0011
+Demo Student 11
+
+L31+L32 				 24BCE0012
+Demo Student 12
+
+L31+L32 				 24BCE0013
+Demo Student 13
+
+L31+L32 				 24BCE0014
+Demo Student 14
+
+L31+L32 				 24BCE0015
+Demo Student 15
+
+
+15 rows selected.
+
+old   8: WHERE c.code = '&&course_code'
+new   8: WHERE c.code = 'CSE1004'
+
+CODE		     REGISTRATION_NO
+-------------------- ------------------------
+FULL_NAME																			 ATTENDANCE_PERCENT
+---------------------------------------------------------------------------------------------------------------------------------------------------------------- ------------------
+CSE1004 	     24BCE0005
+Demo Student 05 																			       66.7
+
+CSE1004 	     24BCE0017
+Demo Student 17 																			       66.7
+
+CSE1004 	     24BCE0037
+Demo Student 37 																			       66.7
+
+
+old   8: WHERE c.code = '&&course_code' AND m.mark_id IS NULL
+new   8: WHERE c.code = 'CSE1004' AND m.mark_id IS NULL
+
+REGISTRATION_NO
+------------------------
+FULL_NAME
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+CODE		     MISSING_ASSESSMENT
+-------------------- ------------------------
+24BCE0010
+Demo Student 10
+CSE1004 	     FAT
+
+24BCE0019
+Demo Student 19
+CSE1004 	     FAT
+
+24BCE0028
+Demo Student 28
+CSE1004 	     FAT
+
+24BCE0037
+Demo Student 37
+CSE1004 	     FAT
+
+
+old   9:   WHERE c.code = '&&course_code'
+new   9:   WHERE c.code = 'CSE1004'
+
+REGISTRATION_NO
+------------------------
+FULL_NAME																			 WEIGHTED_POINTS
+---------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------
+ATTENDANCE_PERCENT
+------------------
+24BCE0044
+Demo Student 44 																			   83.65
+	      91.7
+
+24BCE0015
+Demo Student 15 																			   81.15
+	      91.7
+
+24BCE0030
+Demo Student 30 																			   75.15
+	      91.7
+
+24BCE0013
+Demo Student 13 																			   74.15
+	      91.7
+
+24BCE0014
+Demo Student 14 																			   73.15
+	      91.7
+
+24BCE0045
+Demo Student 45 																			    71.4
+	      91.7
+
+24BCE0043
+Demo Student 43 																			   71.15
+	      91.7
+
+24BCE0029
+Demo Student 29 																			    69.4
+	      91.7
+
+24BCE0039
+Demo Student 39 																			   66.15
+	      91.7
+
+24BCE0036
+Demo Student 36 																			   64.65
+	      91.7
+
+24BCE0023
+Demo Student 23 																			   64.15
+	      91.7
+
+24BCE0020
+Demo Student 20 																			   62.65
+	      91.7
+
+24BCE0007
+Demo Student 07 																			   62.15
+	      91.7
+
+24BCE0012
+Demo Student 12 																			   61.65
+	      91.7
+
+24BCE0004
+Demo Student 04 																			   60.65
+	      91.7
+
+24BCE0041
+Demo Student 41 																			   59.65
+	      91.7
+
+24BCE0027
+Demo Student 27 																			    57.9
+	      91.7
+
+24BCE0025
+Demo Student 25 																			   57.65
+	      91.7
+
+24BCE0022
+Demo Student 22 																			   56.15
+	      91.7
+
+24BCE0011
+Demo Student 11 																			    55.9
+	      91.7
+
+24BCE0009
+Demo Student 09 																			   55.65
+	      91.7
+
+24BCE0005
+Demo Student 05 																			   55.15
+	      66.7
+
+24BCE0008
+Demo Student 08 																			    54.4
+	      91.7
+
+24BCE0006
+
+REGISTRATION_NO
+------------------------
+FULL_NAME																			 WEIGHTED_POINTS
+---------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------
+ATTENDANCE_PERCENT
+------------------
+Demo Student 06 																			   54.15
+	      91.7
+
+24BCE0042
+Demo Student 42 																			   54.15
+	      91.7
+
+24BCE0040
+Demo Student 40 																			    53.9
+	      91.7
+
+24BCE0038
+Demo Student 38 																			   53.65
+	      91.7
+
+24BCE0002
+Demo Student 02 																			   53.15
+	      91.7
+
+24BCE0034
+Demo Student 34 																			   53.15
+	      91.7
+
+24BCE0026
+Demo Student 26 																			   52.15
+	      91.7
+
+24BCE0035
+Demo Student 35 																			   52.15
+	      91.7
+
+24BCE0024
+Demo Student 24 																			    51.9
+	      91.7
+
+24BCE0031
+Demo Student 31 																			   51.15
+	      91.7
+
+24BCE0021
+Demo Student 21 																			    50.4
+	      91.7
+
+24BCE0001
+Demo Student 01 																			   47.05
+	      91.7
+
+24BCE0028
+Demo Student 28 																			   46.05
+	      91.7
+
+24BCE0033
+Demo Student 33 																			   44.65
+	      91.7
+
+24BCE0017
+Demo Student 17 																			   42.65
+	      66.7
+
+24BCE0016
+Demo Student 16 																			    41.4
+	      91.7
+
+24BCE0003
+Demo Student 03 																			    40.9
+	      91.7
+
+24BCE0032
+Demo Student 32 																			    38.9
+	      91.7
+
+24BCE0018
+Demo Student 18 																			   37.15
+	      91.7
+
+24BCE0010
+Demo Student 10 																			   36.15
+	      91.7
+
+24BCE0019
+Demo Student 19 																			    35.7
+	      91.7
+
+24BCE0037
+Demo Student 37 																			    34.8
+	      66.7
+
+
+45 rows selected.
+
+old   7: WHERE ms.submission_status = 'PENDING' AND c.code = '&&course_code'
+new   7: WHERE ms.submission_status = 'PENDING' AND c.code = 'CSE1004'
+
+SUBMISSION_ID REGISTRATION_NO	       CODE		    ASSESSMENT		     REPORTED_SCORE PEER_SCORES_JSON
+------------- ------------------------ -------------------- ------------------------ -------------- --------------------------------------------------------------------------------
+IS_OUTLIER CREATED_AT
+---------- ---------------------------------------------------------------------------
+	    2 24BCE0010 	       CSE1004		    FAT 				 69 [52,61,68,74,81]
+	 0 31-OCT-26 05.53.54.701995 PM
+
+	    3 24BCE0019 	       CSE1004		    FAT 				 74 [52,61,68,74,81]
+	 0 31-OCT-26 05.53.54.702041 PM
+
+	    4 24BCE0028 	       CSE1004		    FAT 				 79 [52,61,68,74,81]
+	 0 31-OCT-26 05.53.54.702067 PM
+
+	    5 24BCE0037 	       CSE1004		    FAT 				 64 [52,61,68,74,81]
+	 1 31-OCT-26 05.53.54.702085 PM
+
+
+old   9: WHERE c.code = '&&course_code'
+new   9: WHERE c.code = 'CSE1004'
+
+CODE	COURSE_NAME
+------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+FACULTY_NAME
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+CLASS_SLOT				 ENROLLED_STUDENTS
+---------------------------------------- -----------------
+CSE1004 Network Essentials
+Demo Faculty One
+A1							15
+
+CSE1004 Network Essentials
+Demo Faculty One
+B2							15
+
+CSE1004 Network Essentials
+Demo Faculty One
+L31+L32 						15
+
+
+=== Reusable PL/SQL package and calculations ===
+Academic summary for 24BCE0001
+CSE1004 | Network Essentials | slot L31+L32 | assessments 6/6 | weighted points 47.05
+CSE1007 | Database Management Systems | slot L31+L32 | assessments 5/6 | weighted points 24.15
+Weighted points=47.05, attendance=91.67%, status=AT_RISK
+24BCE0001 | Demo Student 01 | L31+L32
+24BCE0002 | Demo Student 02 | L31+L32
+24BCE0003 | Demo Student 03 | L31+L32
+24BCE0004 | Demo Student 04 | L31+L32
+24BCE0005 | Demo Student 05 | L31+L32
+24BCE0006 | Demo Student 06 | L31+L32
+24BCE0007 | Demo Student 07 | L31+L32
+24BCE0008 | Demo Student 08 | L31+L32
+24BCE0009 | Demo Student 09 | L31+L32
+24BCE0010 | Demo Student 10 | L31+L32
+24BCE0011 | Demo Student 11 | L31+L32
+24BCE0012 | Demo Student 12 | L31+L32
+24BCE0013 | Demo Student 13 | L31+L32
+24BCE0014 | Demo Student 14 | L31+L32
+24BCE0015 | Demo Student 15 | L31+L32
+24BCE0016 | Demo Student 16 | A1
+24BCE0017 | Demo Student 17 | A1
+24BCE0018 | Demo Student 18 | A1
+24BCE0019 | Demo Student 19 | A1
+24BCE0020 | Demo Student 20 | A1
+24BCE0021 | Demo Student 21 | A1
+24BCE0022 | Demo Student 22 | A1
+24BCE0023 | Demo Student 23 | A1
+24BCE0024 | Demo Student 24 | A1
+24BCE0025 | Demo Student 25 | A1
+24BCE0026 | Demo Student 26 | A1
+24BCE0027 | Demo Student 27 | A1
+24BCE0028 | Demo Student 28 | A1
+24BCE0029 | Demo Student 29 | A1
+24BCE0030 | Demo Student 30 | A1
+24BCE0031 | Demo Student 31 | B2
+24BCE0032 | Demo Student 32 | B2
+24BCE0033 | Demo Student 33 | B2
+24BCE0034 | Demo Student 34 | B2
+24BCE0035 | Demo Student 35 | B2
+24BCE0036 | Demo Student 36 | B2
+24BCE0037 | Demo Student 37 | B2
+24BCE0038 | Demo Student 38 | B2
+24BCE0039 | Demo Student 39 | B2
+24BCE0040 | Demo Student 40 | B2
+24BCE0041 | Demo Student 41 | B2
+24BCE0042 | Demo Student 42 | B2
+24BCE0043 | Demo Student 43 | B2
+24BCE0044 | Demo Student 44 | B2
+24BCE0045 | Demo Student 45 | B2
+24BCE0001 | Demo Student 01 | L31+L32
+24BCE0002 | Demo Student 02 | L31+L32
+24BCE0003 | Demo Student 03 | L31+L32
+24BCE0004 | Demo Student 04 | L31+L32
+24BCE0005 | Demo Student 05 | L31+L32
+24BCE0006 | Demo Student 06 | L31+L32
+24BCE0007 | Demo Student 07 | L31+L32
+24BCE0008 | Demo Student 08 | L31+L32
+24BCE0009 | Demo Student 09 | L31+L32
+24BCE0010 | Demo Student 10 | L31+L32
+24BCE0011 | Demo Student 11 | L31+L32
+24BCE0012 | Demo Student 12 | L31+L32
+24BCE0013 | Demo Student 13 | L31+L32
+24BCE0014 | Demo Student 14 | L31+L32
+24BCE0015 | Demo Student 15 | L31+L32
+24BCE0016 | Demo Student 16 | A1
+24BCE0017 | Demo Student 17 | A1
+24BCE0018 | Demo Student 18 | A1
+24BCE0019 | Demo Student 19 | A1
+24BCE0020 | Demo Student 20 | A1
+24BCE0021 | Demo Student 21 | A1
+24BCE0022 | Demo Student 22 | A1
+24BCE0023 | Demo Student 23 | A1
+24BCE0024 | Demo Student 24 | A1
+24BCE0025 | Demo Student 25 | A1
+24BCE0026 | Demo Student 26 | A1
+24BCE0027 | Demo Student 27 | A1
+24BCE0028 | Demo Student 28 | A1
+24BCE0029 | Demo Student 29 | A1
+24BCE0030 | Demo Student 30 | A1
+24BCE0031 | Demo Student 31 | B2
+24BCE0032 | Demo Student 32 | B2
+24BCE0033 | Demo Student 33 | B2
+24BCE0034 | Demo Student 34 | B2
+24BCE0035 | Demo Student 35 | B2
+24BCE0036 | Demo Student 36 | B2
+24BCE0037 | Demo Student 37 | B2
+24BCE0038 | Demo Student 38 | B2
+24BCE0039 | Demo Student 39 | B2
+24BCE0040 | Demo Student 40 | B2
+24BCE0041 | Demo Student 41 | B2
+24BCE0042 | Demo Student 42 | B2
+24BCE0043 | Demo Student 43 | B2
+24BCE0044 | Demo Student 44 | B2
+24BCE0045 | Demo Student 45 | B2
+24BCE0001 | Demo Student 01
+24BCE0002 | Demo Student 02
+24BCE0003 | Demo Student 03
+24BCE0004 | Demo Student 04
+24BCE0005 | Demo Student 05
+24BCE0006 | Demo Student 06
+24BCE0007 | Demo Student 07
+24BCE0008 | Demo Student 08
+24BCE0009 | Demo Student 09
+24BCE0010 | Demo Student 10
+24BCE0011 | Demo Student 11
+24BCE0012 | Demo Student 12
+24BCE0013 | Demo Student 13
+24BCE0014 | Demo Student 14
+24BCE0015 | Demo Student 15
+
+PL/SQL procedure successfully completed.
+
+=== Expected Oracle exceptions ===
+NO_DATA_FOUND handled for an unknown registration number.
+TOO_MANY_ROWS handled when a faculty member owns multiple slots.
+DUP_VAL_ON_INDEX handled for a duplicate class-slot name.
+Custom RAISE_APPLICATION_ERROR handled: ORA-20050: Intentional custom exception demonstration.
+
+PL/SQL procedure successfully completed.
+
+=== Mark audit rows created by the mark-update demonstration ===
+
+  AUDIT_ID REGISTRATION_NO	    ASSESSMENT		      OLD_SCORE  NEW_SCORE ACTION_TYPE	CHANGED_AT
+---------- ------------------------ ------------------------ ---------- ---------- ------------ ---------------------------------------------------------------------------
+	 1 24BCE0001		    CAT1			     14       36.5 UPDATE	31-OCT-26 05.54.42.396078 PM
+
+=== Oracle database row counts ===
+
+TABLE_NAME	    ROW_COUNT
+------------------ ----------
+ASSESSMENTS		   12
+ATTENDANCE		 1080
+CLASS_SLOTS		    3
+COURSES 		    2
+COURSE_SLOTS		    6
+ENROLLMENTS		   90
+GUIDANCE_ALERTS 	    3
+MARKS			  531
+MARK_AUDIT		    1
+MARK_SUBMISSIONS	    5
+MARK_VERIFICATIONS	    1
+STUDENT_PROFILES	   45
+STUDY_MATCHES		    1
+TEACHER_PROFILES	    2
+USERS			   47
+
+15 rows selected.

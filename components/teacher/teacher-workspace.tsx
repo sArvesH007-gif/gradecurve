@@ -9,6 +9,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import type { CourseAssessment } from "@/lib/grading/course-analytics";
 
 export type TeacherRosterRow = {
@@ -217,11 +218,16 @@ export function TeacherWorkspace({ name, courses, pending, atRisk }: Props) {
             view.
           </p>
         </div>
-        <div className="text-muted rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-xs">
-          Assigned courses{" "}
-          <b className="text-foreground ml-2 font-mono">{courses.length}</b>
-          <span className="mx-3 text-white/15">·</span>Sections{" "}
-          <b className="text-foreground ml-1 font-mono">{assignedSlots.size}</b>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/teacher/oracle" className="border-cyan/20 bg-cyan/10 rounded-xl border px-4 py-3 text-xs font-semibold text-cyan-100 hover:bg-cyan/15">
+            Oracle DA2 workspace
+          </Link>
+          <div className="text-muted rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-3 text-xs">
+            Assigned courses{" "}
+            <b className="text-foreground ml-2 font-mono">{courses.length}</b>
+            <span className="mx-3 text-white/15">·</span>Sections{" "}
+            <b className="text-foreground ml-1 font-mono">{assignedSlots.size}</b>
+          </div>
         </div>
       </section>
 

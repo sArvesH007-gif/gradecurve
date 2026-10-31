@@ -1,0 +1,29 @@
+services:
+  oracle-free:
+    image: container-registry.oracle.com/database/free:latest
+    container_name: gradecurve-oracle-free
+    restart: unless-stopped
+    mem_limit: 4g
+    environment:
+      ORACLE_PWD: ${ORACLE_PWD:?Set ORACLE_PWD in .env.oracle.local}
+      ORACLE_CHARACTERSET: AL32UTF8
+    ports:
+      - "${ORACLE_HOST_PORT:-1522}:1521"
+    volumes:
+      - gradecurve-oracle-data:/opt/oracle/oradata
+      - ./:/opt/oracle/project:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          echo "SELECT 'READY' FROM dual; EXIT;" |
+          sqlplus -L -S system/"$$ORACLE_PWD"@//localhost:1521/FREEPDB1 |
+          grep -q READY
+      interval: 30s
+      timeout: 15s
+      start_period: 5m
+      retries: 20
+
+volumes:
+  gradecurve-oracle-data:
+    name: gradecurve-oracle-data

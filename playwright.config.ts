@@ -23,6 +23,13 @@ export default defineConfig({
       ...(process.env.DATABASE_URL
         ? { DATABASE_URL: process.env.DATABASE_URL }
         : {}),
+      ...(process.env.ORACLE_USER ? { ORACLE_USER: process.env.ORACLE_USER } : {}),
+      ...(process.env.ORACLE_PASSWORD
+        ? { ORACLE_PASSWORD: process.env.ORACLE_PASSWORD }
+        : {}),
+      ...(process.env.ORACLE_CONNECT_STRING
+        ? { ORACLE_CONNECT_STRING: process.env.ORACLE_CONNECT_STRING }
+        : {}),
       AUTH_SECRET: authSecret,
     },
   },
