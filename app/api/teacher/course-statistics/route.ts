@@ -1,56 +1,40 @@
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
+import oracledb from "oracledb";
+import { z } from "zod";
+import { requireOracleTeacher } from "@/lib/oracle/authorization";
+import { logOracleFailure, oracleErrorResponse, withOracleConnection } from "@/lib/oracle/client";
 
-type AssessmentStatisticsRow = {
-  assessment_id: string;
-  assessment_name: string;
-  maximum_marks: number;
-  student_count: bigint;
-  mean_score: number | null;
-  standard_deviation: number;
-  minimum_score: number | null;
-  maximum_score: number | null;
-};
+export const runtime = "nodejs";
+const idSchema = z.string().regex(/^[1-9]\d{0,14}$/);
 
 export async function GET(request: Request) {
-  const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json(
-      { error: "Sign in to view course statistics." },
-      { status: 401 },
-    );
-  if (user.role !== "TEACHER")
-    return NextResponse.json(
-      { error: "Teacher access is required." },
-      { status: 403 },
-    );
-
+  const auth = await requireOracleTeacher();
+  if (auth.response) return auth.response;
   const courseId = new URL(request.url).searchParams.get("courseId");
-  if (!courseId)
-    return NextResponse.json(
-      { error: "Provide a course ID." },
-      { status: 400 },
-    );
-
-  const course = await prisma.course.findFirst({
-    where: { id: courseId, teacher: { userId: user.id } },
-    select: { id: true },
-  });
-  if (!course)
-    return NextResponse.json(
-      { error: "Course was not found for this teacher." },
-      { status: 404 },
-    );
-
-  const statistics = await prisma.$queryRaw<AssessmentStatisticsRow[]>`
-    SELECT *
-    FROM public.course_assessment_statistics(${course.id})
-  `;
-  return NextResponse.json({
-    assessments: statistics.map((row) => ({
-      ...row,
-      student_count: Number(row.student_count),
-    })),
-  });
+  if (!courseId || !idSchema.safeParse(courseId).success) return Response.json({ error: "Provide a course ID." }, { status: 400 });
+  try {
+    const assessments = await withOracleConnection(async (connection) => {
+      const owned = await connection.execute(
+        `SELECT course_id FROM courses WHERE course_id = :courseId AND teacher_id = :teacherId`,
+        { courseId: Number(courseId), teacherId: auth.teacher.oracleTeacherId },
+      );
+      if (!owned.rows?.length) return null;
+      const result = await connection.execute(
+        `SELECT a.assessment_id AS "assessment_id", a.name AS "assessment_name",
+                a.max_score AS "maximum_marks", COUNT(m.mark_id) AS "student_count",
+                AVG(m.score) AS "mean_score", NVL(STDDEV_POP(m.score), 0) AS "standard_deviation",
+                MIN(m.score) AS "minimum_score", MAX(m.score) AS "maximum_score"
+         FROM assessments a LEFT JOIN marks m ON m.assessment_id = a.assessment_id
+         WHERE a.course_id = :courseId
+         GROUP BY a.assessment_id, a.name, a.max_score
+         ORDER BY a.name`,
+        { courseId: Number(courseId) }, { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      );
+      return result.rows ?? [];
+    });
+    if (!assessments) return Response.json({ error: "Course was not found for this teacher." }, { status: 404 });
+    return Response.json({ assessments });
+  } catch (error) {
+    logOracleFailure(error);
+    return oracleErrorResponse(error);
+  }
 }

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSessionToken, sessionCookie } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
+import oracledb from "oracledb";
+import { logOracleFailure, withOracleConnection } from "@/lib/oracle/client";
+
+export const runtime = "nodejs";
 
 const credentialsSchema = z.object({
   username: z.string().trim().min(1).max(120),
@@ -27,7 +30,30 @@ export async function POST(request: Request) {
   }
 
   const { username, password, role } = parsed.data;
-  const user = await prisma.user.findFirst({ where: { username, role } });
+  let user: { id: number; username: string; name: string; role: "STUDENT" | "TEACHER"; passwordHash: string } | undefined;
+  try {
+    const result = await withOracleConnection((connection) =>
+      connection.execute<{
+        id: number;
+        username: string;
+        name: string;
+        role: "STUDENT" | "TEACHER";
+        passwordHash: string;
+      }>(
+        `SELECT user_id AS "id", username AS "username", full_name AS "name",
+                user_role AS "role", password_hash AS "passwordHash"
+         FROM users WHERE LOWER(username) = LOWER(:username) AND user_role = :role`,
+        { username, role },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      ),
+    );
+    user = result.rows?.[0];
+  } catch (error) {
+    logOracleFailure(error);
+    destination.searchParams.set("role", requestedRole);
+    destination.searchParams.set("error", "service");
+    return NextResponse.redirect(destination, 303);
+  }
   if (!user || !verifyPassword(password, user.passwordHash)) {
     destination.searchParams.set("role", role.toLowerCase());
     destination.searchParams.set("error", "1");
@@ -41,7 +67,7 @@ export async function POST(request: Request) {
   response.cookies.set(
     sessionCookie.name,
     createSessionToken({
-      id: user.id,
+      id: String(user.id),
       username: user.username,
       name: user.name,
       role,

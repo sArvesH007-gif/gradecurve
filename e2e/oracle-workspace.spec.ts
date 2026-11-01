@@ -1,25 +1,21 @@
 import { expect, test } from "@playwright/test";
-import { createSessionToken } from "../lib/auth/session-token";
 
-test("Oracle faculty UI creates and safely deletes a course, an assessment, a mark, and attendance", async ({
+test("Oracle faculty UI creates and safely deletes students and courses, and writes assessments, marks, and attendance", async ({
   page,
 }) => {
   test.skip(
     !process.env.ORACLE_USER ||
       !process.env.ORACLE_PASSWORD ||
-      !process.env.ORACLE_CONNECT_STRING,
+      !process.env.ORACLE_CONNECT_STRING ||
+      !process.env.DEMO_PASSWORD,
     "Local Oracle environment is not configured.",
   );
 
-  const token = createSessionToken({
-    id: "oracle-e2e-teacher",
-    username: "dr.sharma@gradecurve.demo",
-    name: "Demo Faculty One",
-    role: "TEACHER",
-  });
-  await page.context().addCookies([
-    { name: "gc_session", value: token, url: "http://127.0.0.1:3000" },
-  ]);
+  await page.goto("/login?role=teacher");
+  await page.getByLabel("Email address").fill("dr.sharma@gradecurve.demo");
+  await page.getByLabel("Password").fill(process.env.DEMO_PASSWORD!);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/teacher$/);
   await page.goto("/teacher/oracle");
   await expect(
     page.getByRole("heading", { name: "Oracle faculty workspace" }),
@@ -77,4 +73,22 @@ test("Oracle faculty UI creates and safely deletes a course, an assessment, a ma
   await courseRow.getByRole("button", { name: "Delete empty" }).click();
   await expect(page.getByRole("status")).toContainText("Unused Oracle course deleted.");
   await expect(page.getByRole("row").filter({ hasText: code })).toHaveCount(0);
+
+  const registrationNo = `E2E${Date.now().toString().slice(-7)}`;
+  const studentForm = page
+    .locator("form")
+    .filter({ has: page.getByRole("heading", { name: "Insert a student" }) });
+  await studentForm.getByLabel("Registration number").fill(registrationNo);
+  await studentForm.getByLabel("Student name").fill("Oracle UI Student CRUD Fixture");
+  await studentForm.getByLabel("Initial password").fill("e2e-initial-password-2026");
+  await studentForm.locator('select[name="courseId"]').selectOption({ label: "CSE1004 · Network Essentials" });
+  await studentForm.locator('select[name="slotId"]').selectOption({ index: 1 });
+  await studentForm.getByRole("button", { name: "Insert student" }).click();
+  await expect(page.getByRole("status")).toContainText("Oracle student created.");
+  const studentRow = page.getByRole("row").filter({ hasText: registrationNo });
+  await expect(studentRow).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await studentRow.getByRole("button", { name: "Delete empty" }).click();
+  await expect(page.getByRole("status")).toContainText("Empty Oracle student record deleted.");
+  await expect(page.getByRole("row").filter({ hasText: registrationNo })).toHaveCount(0);
 });

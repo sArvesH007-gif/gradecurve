@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowDownRight,
   ArrowUpRight,
   CalendarCheck2,
   GraduationCap,
+  Network,
   Sparkles,
   Target,
 } from "lucide-react";
@@ -240,6 +241,34 @@ export function StudentWorkspace({
   const [fallbackFeedback, setFallbackFeedback] = useState("");
   const [matchFeedback, setMatchFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [graphMatches, setGraphMatches] = useState<{
+    recommendations: Array<{
+      partnerId: string;
+      partnerLabel: string;
+      courseCode: string;
+      courseName: string;
+      topics: string[];
+    }>;
+    error?: string;
+  } | null>(null);
+  useEffect(() => {
+    fetch("/api/student/study-partners")
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error ?? "Graph suggestions are unavailable.");
+        setGraphMatches(data);
+      })
+      .catch((error: unknown) => {
+        setGraphMatches({
+          recommendations: [],
+          error:
+            error instanceof Error
+              ? error.message
+              : "Graph suggestions are unavailable.",
+        });
+      });
+  }, []);
   const fallbackCourse =
     courses.find(({ id }) => id === fallbackCourseId) ?? course;
   const availableAssessments = fallbackCourse?.assessments ?? [];
@@ -464,7 +493,8 @@ export function StudentWorkspace({
                 <div key={assessment.id} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-medium">
-                      {assessment.name} · {(assessment.weight * 100).toFixed(0)}%
+                      {assessment.name} · {(assessment.weight * 100).toFixed(0)}
+                      %
                     </span>
                     <span className="text-muted font-mono text-xs">
                       {assessment.studentScore == null
@@ -679,11 +709,14 @@ export function StudentWorkspace({
                 className="text-foreground h-10 rounded-lg border border-white/10 bg-[#111725] px-3 text-sm"
               >
                 <option value="">Select assessment</option>
-                {availableAssessments.map(({ id, name: assessmentName, maxScore, weight }) => (
-                  <option key={id} value={id}>
-                    {assessmentName} ({(weight * 100).toFixed(0)}% / {maxScore})
-                  </option>
-                ))}
+                {availableAssessments.map(
+                  ({ id, name: assessmentName, maxScore, weight }) => (
+                    <option key={id} value={id}>
+                      {assessmentName} ({(weight * 100).toFixed(0)}% /{" "}
+                      {maxScore})
+                    </option>
+                  ),
+                )}
               </select>
             </label>
             <label className="text-muted grid gap-1.5 text-xs">
@@ -775,6 +808,50 @@ export function StudentWorkspace({
             </p>
           )}
         </article>
+      </section>
+
+      <section className={`${panel} mb-6 p-5 sm:p-6`}>
+        <div className="flex items-center gap-2">
+          <Network size={17} className="text-cyan" />
+          <h2 className="text-lg font-semibold">
+            Graph study-partner suggestions
+          </h2>
+          <span className="text-muted rounded-full border border-white/10 px-2 py-0.5 text-[10px] tracking-wide uppercase">
+            Synthetic demo
+          </span>
+        </div>
+        <p className="text-muted mt-1 text-sm">
+          Neo4j finds fictional classmates in the same course and slot who can
+          help with topics.
+        </p>
+        {graphMatches === null ? (
+          <p className="text-muted mt-4 text-sm">Loading graph suggestions…</p>
+        ) : graphMatches.error ? (
+          <p role="status" className="text-muted mt-4 text-sm">
+            {graphMatches.error}
+          </p>
+        ) : graphMatches.recommendations.length === 0 ? (
+          <p className="text-muted mt-4 text-sm">
+            No matching synthetic demo profiles were found.
+          </p>
+        ) : (
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {graphMatches.recommendations.map((match) => (
+              <li
+                key={match.partnerId}
+                className="rounded-xl border border-white/[0.08] bg-black/15 p-4"
+              >
+                <p className="font-medium">{match.partnerLabel}</p>
+                <p className="text-muted mt-1 text-xs">
+                  {match.courseCode} · {match.courseName}
+                </p>
+                <p className="text-cyan mt-3 text-xs">
+                  Can help with: {match.topics.join(", ")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
       <p className="text-muted mt-8 text-center text-xs leading-5">
         Relative grading analytics are estimates and simulations; official

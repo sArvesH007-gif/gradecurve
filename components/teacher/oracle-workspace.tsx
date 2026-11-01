@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 type Course = { id: number; code: string; name: string; semester: number; enrollmentCount: number };
 type Slot = { id: number; name: string };
-type Student = { id: number; registrationNo: string; name: string; slotName: string };
+type Student = { id: number; registrationNo: string; name: string; slotName: string; canDelete: number };
 type Assessment = { id: number; courseId: number; name: string; maxScore: number; weight: number; courseCode: string };
 type Mark = { id: number; studentId: number; assessmentId: number; courseId: number; registrationNo: string; studentName: string; courseCode: string; assessmentName: string; score: number; maxScore: number };
 type Workspace = { courses: Course[]; slots: Slot[]; students: Student[]; assessments: Assessment[]; marks: Mark[] };
@@ -111,6 +111,20 @@ export function OracleWorkspace() {
     if (ok) form.reset();
   }
 
+  async function createStudent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const ok = await send("/api/oracle/students", "POST", {
+      registrationNo: String(values.get("registrationNo")),
+      name: String(values.get("name")),
+      initialPassword: String(values.get("initialPassword")),
+      courseId: Number(values.get("courseId")),
+      slotId: Number(values.get("slotId")),
+    });
+    if (ok) form.reset();
+  }
+
   async function updateMark(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
@@ -135,6 +149,11 @@ export function OracleWorkspace() {
   async function deleteCourse(course: Course) {
     if (!window.confirm(`Delete unused course ${course.code}? Courses with learner activity are protected.`)) return;
     await send(`/api/oracle/courses/${course.id}`, "DELETE");
+  }
+
+  async function deleteStudent(student: Student) {
+    if (!window.confirm(`Delete empty student ${student.registrationNo}? Students with marks, attendance, or support activity are protected.`)) return;
+    await send(`/api/oracle/students/${student.id}`, "DELETE");
   }
 
   return (
@@ -186,10 +205,10 @@ export function OracleWorkspace() {
           <h2 className="text-lg font-semibold">Oracle student roster</h2>
           <div className="mt-4 max-h-72 overflow-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-muted sticky top-0 bg-[#111725] text-xs"><tr><th className="py-2">Registration</th><th>Name</th><th>Slot</th></tr></thead>
+              <thead className="text-muted sticky top-0 bg-[#111725] text-xs"><tr><th className="py-2">Registration</th><th>Name</th><th>Slot</th><th /></tr></thead>
               <tbody className="divide-y divide-white/[0.06]">
-                {data.students.map((student) => <tr key={student.id}><td className="py-2 font-mono">{student.registrationNo}</td><td>{student.name}</td><td>{student.slotName}</td></tr>)}
-                {!data.students.length && !loading && <tr><td className="text-muted py-3" colSpan={3}>No student records found.</td></tr>}
+                {data.students.map((student) => <tr key={student.id}><td className="py-2 font-mono">{student.registrationNo}</td><td>{student.name}</td><td>{student.slotName}</td><td className="text-right"><button disabled={busy || !student.canDelete} onClick={() => void deleteStudent(student)} type="button" className="text-xs text-rose-200 underline disabled:cursor-not-allowed disabled:opacity-30" title="Only empty students in your class slots can be deleted">Delete empty</button></td></tr>)}
+                {!data.students.length && !loading && <tr><td className="text-muted py-3" colSpan={4}>No student records found.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -197,6 +216,15 @@ export function OracleWorkspace() {
       </section>
 
       <section className="mb-6 grid gap-5 md:grid-cols-2">
+        <form className={`${panel} grid content-start gap-3`} onSubmit={createStudent}>
+          <div><h2 className="text-lg font-semibold">Insert a student</h2><p className="text-muted mt-1 text-xs">Creates an Oracle account, profile, and course enrollment. The initial password is stored only as a salted hash.</p></div>
+          <label className={label}>Registration number<input className={input} name="registrationNo" maxLength={24} pattern="[A-Za-z0-9-]+" required /></label>
+          <label className={label}>Student name<input className={input} name="name" maxLength={160} required /></label>
+          <label className={label}>Initial password<input className={input} name="initialPassword" type="password" minLength={12} maxLength={256} autoComplete="new-password" required /></label>
+          <label className={label}>Course<select className={input} name="courseId" required defaultValue=""><option value="" disabled>Select course</option>{data.courses.map((course) => <option key={course.id} value={course.id}>{course.code} · {course.name}</option>)}</select></label>
+          <label className={label}>Class slot<select className={input} name="slotId" required defaultValue=""><option value="" disabled>Select slot</option>{data.slots.map((slot) => <option key={slot.id} value={slot.id}>{slot.name}</option>)}</select></label>
+          <button className={button} disabled={busy || !data.courses.length || !data.slots.length} type="submit">Insert student</button>
+        </form>
         <form className={`${panel} grid content-start gap-3`} onSubmit={createCourse}>
           <div><h2 className="text-lg font-semibold">Insert a course</h2><p className="text-muted mt-1 text-xs">Creates an Oracle course and its class-slot offering.</p></div>
           <label className={label}>Course code<input className={input} name="code" maxLength={20} pattern="[A-Za-z0-9-]+" placeholder="ORCL-DEMO" required /></label>

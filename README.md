@@ -1,21 +1,18 @@
-﻿# GradeCurve
+# GradeCurve
 
-GradeCurve is a relative grading analytics platform for university students and faculty. It is being built as a TypeScript full-stack application with Next.js App Router, PostgreSQL, Prisma ORM 7, Tailwind CSS 4, Zod, Recharts, Vitest, and Playwright.
+GradeCurve is a relative-grading application built with Next.js App Router, React, and TypeScript. Its active relational database is Oracle Database Free 26ai; Neo4j provides synthetic graph-based study-partner examples. The preserved PostgreSQL/Prisma implementation remains available for historical comparison and legacy experiments, but the active pages and APIs do not connect to PostgreSQL.
 
-## Application
+## Architecture
 
-- Student and faculty sign-in with role-separated, signed 12-hour sessions.
-- Student analytics sourced from official marks, section comparisons, attendance, and a difficulty-adjusted FAT predictor.
-- Fallback mark submissions with peer-score outlier checks and a faculty verification queue.
-- Same-slot study match requests, gated by relative performance.
-- Faculty course and section summaries, batch mark entry, verification decisions, and persisted at-risk guidance alerts.
-- A reusable relative grading engine with unit coverage for missing marks, zero deviation, targets, outliers, and at-risk thresholds.
-- PostgreSQL Prisma schema and initial migration, plus deterministic seed data for 45 students, two courses, and three class slots.
-- PBKDF2-SHA256 password hashing for seeded demo accounts.
+- **Frontend:** Next.js and React student and faculty dashboards.
+- **Backend:** TypeScript route handlers and server components.
+- **Relational system of record:** Oracle tables for users, student/faculty profiles, courses, slots, enrollments, assessments, marks, attendance, fallback submissions, verifications, study-match requests, and guidance alerts. Application access uses the official `node-oracledb` driver with a server-side pool, bound SQL values, and transactions for multi-step writes.
+- **Graph database:** Neo4j stores a separate synthetic graph of students, courses, topics, and slots. Cypher handles graph CRUD, traversal, and the demo recommendations. No marks, credentials, real student names, or registration numbers are copied into Neo4j.
+- **Authentication:** Account lookup and PBKDF2-SHA256 password verification use Oracle. The app retains signed, HTTP-only, same-site 12-hour session cookies and role checks. Passwords and session secrets remain in local environment variables.
 
-### Assessment structure
+Oracle remains authoritative for academic information. Neo4j is a teaching example for relationship traversal. The graph's fixed fictional requester is not mapped to a signed-in Oracle student and its results are always labeled **Synthetic demo**; there is no automatic cross-database synchronization.
 
-Course totals use raw marks converted into weighted points out of 100:
+## GradeCurve assessment structure
 
 | Component | Raw maximum | Course weight |
 | --- | ---: | ---: |
@@ -26,71 +23,79 @@ Course totals use raw marks converted into weighted points out of 100:
 | DA3 | 10 | 10% |
 | FAT | 100 | 40% |
 
-Each component contributes `raw mark / raw maximum × course weight`; ungraded
-components are excluded from earned points and are estimated from the section
-mean only in projected course totals. Z-scores and trajectories compare
-weighted course points for students with the same completed components.
+Oracle stores weights as fractions. A recorded mark contributes `raw mark / raw maximum × weight × 100` points. Relative grading compares students in the same course and class slot using the existing shared-completion cohort rules.
 
-## Requirements
+## Local setup
 
-- Node.js 20.9 or newer (Node.js 24 LTS recommended).
-- PostgreSQL 15 or newer, local or hosted.
+Requirements: Node.js 20.9+, Docker Desktop with Compose, and the already initialized Oracle and Neo4j databases (or use the setup scripts below for fresh local databases).
 
-## Setup
+1. Install locked dependencies and copy the environment template:
+
+   ```powershell
+   npm.cmd ci
+   Copy-Item .env.example .env.local
+   ```
+
+2. Set `AUTH_SECRET` to a random value of at least 32 characters, `DEMO_PASSWORD` to a local demo account password, Oracle connection values (`ORACLE_USER`, `ORACLE_PASSWORD`, `ORACLE_CONNECT_STRING`), and Neo4j values (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`) in `.env.local`. Create ignored `.env.neo4j.local` with only `NEO4J_USERNAME` and `NEO4J_PASSWORD` for Docker Compose, matching the existing Neo4j credentials. Never commit these local environment files.
+
+3. Start the existing Oracle and Neo4j services without deleting volumes:
+
+   ```powershell
+   docker compose --project-name gradecurve-oracle -f database/oracle/docker-compose.yml --env-file .env.oracle.local up -d
+   docker compose --project-name dbslab --env-file .env.neo4j.local up -d neo4j
+   ```
+
+   Oracle uses host port 1522 and service `FREEPDB1`, persisting in `gradecurve-oracle-data`. The Neo4j Compose project keeps its existing `dbslab_neo4j_data` and `dbslab_neo4j_logs` volumes. The project reuses those services and does not start PostgreSQL.
+
+4. On a fresh Oracle schema, run `database/oracle/00_setup.sql` using SQL*Plus as described in [the Oracle guide](database/oracle/README.md). Provision password hashes for the seeded demo accounts:
+
+   ```powershell
+   npm.cmd run db:provision-oracle-demo
+   ```
+
+   This reads `DEMO_PASSWORD` locally and stores a distinct PBKDF2-SHA256 hash per Oracle account; it never stores the plain-text password.
+
+5. Seed and verify the synthetic Neo4j graph:
+
+   ```powershell
+   npm.cmd run db:seed:neo4j
+   npm.cmd run db:verify:neo4j
+   ```
+
+6. Start GradeCurve and open http://localhost:3000:
+
+   ```powershell
+   npm.cmd run dev
+   ```
+
+Demo accounts include student `24BCE0001` and faculty `dr.sharma@gradecurve.demo`. Use the locally configured `DEMO_PASSWORD`. Oracle fixtures are synthetic `Demo Student NN` records; the graph contains six pseudonymous synthetic students.
+
+## DA2 Oracle SQL and PL/SQL
+
+The Oracle implementation includes 15 tables, synthetic data, 12 distinct SQL query examples, PL/SQL procedures/functions/cursors/package/trigger/exception examples, and a Next.js Oracle faculty CRUD workspace. See [database/oracle/README.md](database/oracle/README.md) for setup, schema mapping, demonstrations, and recorded live verification.
+
+## DA3 graph integration
+
+See [docs/da3/neo4j-study-partners.md](docs/da3/neo4j-study-partners.md) for the final database split, graph model, Cypher examples, API behavior, synchronization boundary, and demonstration steps. `GET /api/student/study-partners` requires a valid student session and returns the fixed synthetic recommendations with `syntheticDemo: true`.
+
+## Historical PostgreSQL reference
+
+The existing Prisma schema, migrations, PostgreSQL SQL/PL/pgSQL demonstrations, seed code, and connector dependencies remain in the repository for historical reference. `npm.cmd run db:migrate` and `npm.cmd run db:seed` are legacy-only and require PostgreSQL; the active GradeCurve login, dashboards, APIs, and normal runtime do not. The running PostgreSQL container and its volume are left intact.
+
+## Checks
 
 ```powershell
-npm ci
-Copy-Item .env.example .env.local
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd test
+npm.cmd run test:e2e
+npm.cmd run build
 ```
 
-Set `DATABASE_URL`, `DIRECT_URL`, a generated `AUTH_SECRET`, and a local `DEMO_PASSWORD` in `.env.local`. Create the PostgreSQL database, then apply the included migration and seed the demo accounts:
+Database integration checks are `npm.cmd run db:verify:neo4j`, `npm.cmd run db:provision-oracle-demo`, and the Playwright student/faculty flows. Only report checks as passed after they have run against the relevant local service.
 
-```powershell
-npm run db:migrate
-npm run db:seed
-npm run dev
-```
+## Secrets and limitations
 
-Open http://localhost:3000.
+`.env.local`, `.env.oracle.local`, `.next`, and `node_modules` are ignored. `.env.example` contains placeholders only. Oracle and Neo4j credentials are server-side. Neo4j recommendations use six synthetic graph learners and a fixed fictional requester; they are not personalized with a real student's identity or academic records. Oracle-to-Neo4j synchronization is intentionally not implemented.
 
-## Demo credentials
-
-All seeded accounts use the `DEMO_PASSWORD` configured locally before running the seed. The password is not stored in the repository; the seed stores only a PBKDF2-SHA256 hash.
-
-- Student registration number: `24BCE0001`
-- Teacher: `dr.sharma@gradecurve.demo`
-- Teacher: `ananya@gradecurve.demo`
-
-## Quality commands
-
-```powershell
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run test:e2e
-```
-
-The unit suite covers grading calculations and signed session behavior. The Playwright suite covers the landing and sign-in pages, unauthenticated route protection, role separation, and sign-out. Database-backed sign-in and dashboard flows need the configured PostgreSQL database to be running and seeded.
-
-## Environment and secrets
-
-`.env.local` and `.env` are ignored by Git. `.env.example` contains placeholders only. Do not commit passwords, database credentials, or authentication secrets.
-
-## Relative grading language
-
-GradeCurve reports analytical trajectories and simulations. They are not official university grades; official outcomes remain determined by institutional policy.
-
-## Database-side retrieval experiment
-
-The experimental branch adds `GET /api/student/assessment-summary`, backed by the PostgreSQL `student_assessment_summary` PL/pgSQL function. The endpoint requires a student session and uses the signed-in user's ID on the server. It returns each enrolled course's class slot, assessments, maximum marks, weights, and any recorded marks.
-
-This experiment uses PostgreSQL PL/pgSQL. Oracle PL/SQL cannot run directly on PostgreSQL; Oracle support would require an Oracle-compatible database and a separate database integration.
-
-## DA2 procedural database operations
-
-The migration `prisma/migrations/20261024000000_da2_procedural_queries/migration.sql` adds nine PostgreSQL PL/pgSQL operations alongside the existing `student_assessment_summary` function: academic summary, per-student/course marks, assessment statistics, validated mark upsert, validated attendance upsert, weighted course score, course-slot roster, attendance summary, and at-risk students. The risk function follows the application criteria (same course slot, cumulative weighted-score Z-score below -1.0 or attendance below 75%).
-
-The SQL matches the Prisma tables: `User`, `StudentProfile`, `TeacherProfile`, `Course`, `ClassSlot`, `CourseSlot`, `Enrollment`, `Assessment`, `Mark`, and `Attendance`. Assessment weights are stored as fractions (`0.15` for 15%); weighted points use `score / maxScore * weight * 100`. The procedures check teacher ownership, enrollment, score ranges, and required attendance values. The existing Next.js mark route continues to use its validated transactional Prisma implementation; the new teacher statistics route calls the course statistics function after checking course ownership.
-
-For SQL definitions and sample calls, see `prisma/da2_demo.sql`. Apply the migration with `npm run db:migrate`; the demo file uses a rollback around its procedure calls to preserve seeded data. The demo queries are provided for execution against a seeded PostgreSQL database; no database output is claimed as verified unless run locally.
+Relative grading projections and risk indicators are estimates; official outcomes remain determined by institutional policy.

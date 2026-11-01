@@ -33,11 +33,18 @@ export async function GET() {
       );
       const studentsResult = await connection.execute<Row>(
         `SELECT sp.student_id AS "id", sp.registration_no AS "registrationNo",
-                u.full_name AS "name", sl.name AS "slotName"
+                u.full_name AS "name", sl.name AS "slotName",
+                CASE WHEN sl.teacher_id = :teacherId
+                       AND NOT EXISTS (SELECT 1 FROM marks m WHERE m.student_id = sp.student_id)
+                       AND NOT EXISTS (SELECT 1 FROM attendance att WHERE att.student_id = sp.student_id)
+                       AND NOT EXISTS (SELECT 1 FROM mark_submissions ms WHERE ms.student_id = sp.student_id)
+                       AND NOT EXISTS (SELECT 1 FROM study_matches sm WHERE sm.requester_id = sp.student_id OR sm.peer_id = sp.student_id)
+                       AND NOT EXISTS (SELECT 1 FROM guidance_alerts ga WHERE ga.student_id = sp.student_id)
+                     THEN 1 ELSE 0 END AS "canDelete"
          FROM student_profiles sp
          JOIN users u ON u.user_id = sp.user_id
          JOIN class_slots sl ON sl.slot_id = sp.active_slot_id
-         WHERE EXISTS (
+         WHERE sl.teacher_id = :teacherId OR EXISTS (
            SELECT 1 FROM enrollments e JOIN courses c ON c.course_id = e.course_id
            WHERE e.student_id = sp.student_id AND c.teacher_id = :teacherId
          )

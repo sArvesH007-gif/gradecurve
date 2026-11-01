@@ -53,6 +53,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               >
                 {params.error === "role"
                   ? "That account does not have access to this workspace. Choose its matching role to sign in."
+                  : params.error === "service"
+                    ? "The Oracle sign-in service is temporarily unavailable. Try again shortly."
                   : "Check your credentials and selected role, then try again."}
               </p>
             )}

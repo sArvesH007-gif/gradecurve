@@ -1,37 +1,34 @@
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
+import oracledb from "oracledb";
+import { requireOracleStudent } from "@/lib/oracle/authorization";
+import { logOracleFailure, oracleErrorResponse, withOracleConnection } from "@/lib/oracle/client";
 
-type StudentAssessmentSummaryRow = {
-  registration_no: string;
-  course_id: string;
-  course_code: string;
-  course_name: string;
-  class_slot: string;
-  assessment_id: string;
-  assessment_name: string;
-  obtained_marks: number | null;
-  maximum_marks: number;
-  weight: number;
-};
+export const runtime = "nodejs";
 
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user)
-    return NextResponse.json(
-      { error: "Sign in to view assessment data." },
-      { status: 401 },
+  const auth = await requireOracleStudent();
+  if (auth.response) return auth.response;
+  try {
+    const result = await withOracleConnection((connection) =>
+      connection.execute(
+        `SELECT sp.registration_no AS "registration_no", c.course_id AS "course_id",
+                c.code AS "course_code", c.name AS "course_name", sl.name AS "class_slot",
+                a.assessment_id AS "assessment_id", a.name AS "assessment_name",
+                m.score AS "obtained_marks", a.max_score AS "maximum_marks", a.weight AS "weight"
+         FROM enrollments e
+         JOIN student_profiles sp ON sp.student_id = e.student_id
+         JOIN courses c ON c.course_id = e.course_id
+         JOIN class_slots sl ON sl.slot_id = e.slot_id
+         JOIN assessments a ON a.course_id = c.course_id
+         LEFT JOIN marks m ON m.student_id = e.student_id AND m.assessment_id = a.assessment_id
+         WHERE e.student_id = :studentId
+         ORDER BY c.code, a.name`,
+        { studentId: auth.student.oracleStudentId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      ),
     );
-  if (user.role !== "STUDENT")
-    return NextResponse.json(
-      { error: "Student access is required." },
-      { status: 403 },
-    );
-
-  const rows = await prisma.$queryRaw<StudentAssessmentSummaryRow[]>`
-    SELECT *
-    FROM public.student_assessment_summary(${user.id})
-  `;
-
-  return NextResponse.json({ assessments: rows });
+    return Response.json({ assessments: result.rows ?? [] });
+  } catch (error) {
+    logOracleFailure(error);
+    return oracleErrorResponse(error);
+  }
 }

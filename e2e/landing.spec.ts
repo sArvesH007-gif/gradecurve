@@ -4,6 +4,8 @@ import { createSessionToken } from "../lib/auth/session-token";
 if (!process.env.AUTH_SECRET)
   throw new Error("Playwright must set a temporary AUTH_SECRET for e2e tests.");
 
+const appUrl = "http://localhost:3001";
+
 test("landing page introduces relative grading and student/faculty workspaces", async ({
   page,
 }) => {
@@ -48,7 +50,7 @@ test("anonymous and tampered sessions cannot enter protected routes", async ({
     {
       name: "gc_session",
       value: "tampered.payload",
-      url: "http://127.0.0.1:3000",
+      url: appUrl,
     },
   ]);
   await page.goto("/teacher");
@@ -67,7 +69,7 @@ test("signed student and faculty sessions stay separated by role", async ({
   await page
     .context()
     .addCookies([
-      { name: "gc_session", value: studentToken, url: "http://127.0.0.1:3000" },
+      { name: "gc_session", value: studentToken, url: appUrl },
     ]);
   await page.goto("/teacher");
   await expect(page).toHaveURL(/\/login\?role=student&error=role/);
@@ -82,7 +84,7 @@ test("signed student and faculty sessions stay separated by role", async ({
   await page
     .context()
     .addCookies([
-      { name: "gc_session", value: teacherToken, url: "http://127.0.0.1:3000" },
+      { name: "gc_session", value: teacherToken, url: appUrl },
     ]);
   await page.goto("/student");
   await expect(page).toHaveURL(/\/login\?role=teacher&error=role/);
@@ -98,7 +100,7 @@ test("sign-out clears the session cookie", async ({ page }) => {
   await page
     .context()
     .addCookies([
-      { name: "gc_session", value: token, url: "http://127.0.0.1:3000" },
+      { name: "gc_session", value: token, url: appUrl },
     ]);
   await page.goto("/");
   const response = await page.request.post("/api/logout", { maxRedirects: 0 });
